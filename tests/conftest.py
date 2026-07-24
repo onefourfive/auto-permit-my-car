@@ -16,11 +16,13 @@ from permitmycar_app.web import create_app
 
 @dataclass
 class FakePermitClient:
-    result: PermitResult
+    result: PermitResult | Exception
     calls: list[tuple[CarConfig, tuple]]
 
     def submit(self, car: CarConfig, dates: tuple) -> PermitResult:
         self.calls.append((car, dates))
+        if isinstance(self.result, Exception):
+            raise self.result
         return self.result
 
 

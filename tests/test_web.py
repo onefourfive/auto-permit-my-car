@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from permitmycar_app.client import PermitResult, UpstreamUnavailableError
 from permitmycar_app.web import PACIFIC, _minimum_permit_date
 
 from .conftest import csrf, log_in
@@ -105,6 +106,64 @@ def test_successful_nonce_is_not_submitted_twice(client, fake_client):
 
     assert len(fake_client.calls) == 1
     assert b"already submitted" in response.data
+
+
+def test_indeterminate_nonce_is_consumed_before_upstream_call(
+    client, fake_client
+):
+    fake_client.result = UpstreamUnavailableError(
+        "PermitMyCar timed out after submission. No retry was attempted."
+    )
+    log_in(client)
+    client.post(
+        "/review",
+        data={
+            "csrf_token": csrf(client),
+            "car_id": "1",
+            "dates": "2030-01-02",
+        },
+    )
+    with client.session_transaction() as current_session:
+        nonce = current_session["pending_review"]["nonce"]
+
+    first = client.post(
+        "/permit",
+        data={"csrf_token": csrf(client), "nonce": nonce},
+    )
+    second = client.post(
+        "/permit",
+        data={"csrf_token": csrf(client), "nonce": nonce},
+    )
+
+    assert b"timed out after submission" in first.data
+    assert b"already started" in second.data
+    assert len(fake_client.calls) == 1
+
+
+def test_rejected_nonce_cannot_be_resubmitted(client, fake_client):
+    fake_client.result = PermitResult(
+        success=False, message="PermitMyCar rejected the dates."
+    )
+    log_in(client)
+    client.post(
+        "/review",
+        data={
+            "csrf_token": csrf(client),
+            "car_id": "1",
+            "dates": "2030-01-02",
+        },
+    )
+    with client.session_transaction() as current_session:
+        nonce = current_session["pending_review"]["nonce"]
+
+    for _ in range(2):
+        response = client.post(
+            "/permit",
+            data={"csrf_token": csrf(client), "nonce": nonce},
+        )
+        assert b"rejected the dates" in response.data
+
+    assert len(fake_client.calls) == 1
 
 
 def test_review_rejects_missing_car_and_date(client):

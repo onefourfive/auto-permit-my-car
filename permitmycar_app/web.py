@@ -36,12 +36,12 @@ class SubmissionRegistry:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._completed: dict[str, tuple[float, PermitResult]] = {}
+        self._results: dict[str, tuple[float, PermitResult]] = {}
 
-    def completed(self, nonce: str) -> PermitResult | None:
+    def result_for(self, nonce: str) -> PermitResult | None:
         with self._lock:
             self._cleanup()
-            item = self._completed.get(nonce)
+            item = self._results.get(nonce)
             return item[1] if item else None
 
     def submit_once(
@@ -51,23 +51,36 @@ class SubmissionRegistry:
         # external call gives strong double-click protection without a DB.
         with self._lock:
             self._cleanup()
-            existing = self._completed.get(nonce)
+            existing = self._results.get(nonce)
             if existing:
                 return existing[1], True
+
+            # Record the nonce before any upstream work begins. If the request
+            # times out after PermitMyCar saves it, the indeterminate result
+            # remains and the same nonce can never submit again.
+            started = PermitResult(
+                success=False,
+                message=(
+                    "This permit submission already started, but its outcome "
+                    "could not be confirmed. Check PermitMyCar before creating "
+                    "a new request."
+                ),
+            )
+            self._results[nonce] = (time.monotonic(), started)
+
             result = submitter()
-            if result.success:
-                self._completed[nonce] = (time.monotonic(), result)
+            self._results[nonce] = (time.monotonic(), result)
             return result, False
 
     def _cleanup(self) -> None:
         cutoff = time.monotonic() - RESULT_TTL_SECONDS
         expired = [
             nonce
-            for nonce, (created, _) in self._completed.items()
+            for nonce, (created, _) in self._results.items()
             if created < cutoff
         ]
         for nonce in expired:
-            self._completed.pop(nonce, None)
+            self._results.pop(nonce, None)
 
 
 def create_app(test_config: dict[str, Any] | None = None) -> Flask:
@@ -183,7 +196,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         nonce = request.form.get("nonce", "")
         registry: SubmissionRegistry = app.extensions["submission_registry"]
 
-        cached = registry.completed(nonce)
+        cached = registry.result_for(nonce)
         if cached:
             return render_template(
                 "result.html", result=cached, replayed=True
@@ -216,8 +229,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             result = PermitResult(success=False, message=str(exc))
             replayed = False
 
-        if result.success:
-            session.pop("pending_review", None)
+        session.pop("pending_review", None)
         return render_template(
             "result.html", result=result, replayed=replayed
         )
