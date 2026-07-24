@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -268,6 +269,10 @@ class PermitMyCarClient:
             "could not",
             "error:",
             "not permitted",
+            "has been denied",
+            "has been rejected",
+            "permit denied",
+            "permit rejected",
         )
         if any(marker in normalized for marker in error_markers):
             return PermitResult(
@@ -276,15 +281,28 @@ class PermitMyCarClient:
                 or "PermitMyCar rejected the permit.",
             )
 
-        success_markers = (
-            "successfully",
-            "has been safelisted",
-            "vehicle has been",
-            "confirmation",
-            "permit has been",
+        confirmation = cls._extract_confirmation(soup)
+        ambiguous_markers = (
+            "denied",
+            "rejected",
+            "pending",
+            "failed",
+            "error",
         )
-        if any(marker in normalized for marker in success_markers):
-            confirmation = cls._extract_confirmation(soup)
+        structured_success = bool(confirmation) and not any(
+            marker in confirmation.casefold() for marker in ambiguous_markers
+        )
+        explicit_success = any(
+            re.search(pattern, normalized)
+            for pattern in (
+                r"\bvehicle (?:has been|was) (?:successfully )?safelisted\b",
+                r"\bvehicle (?:has been|was) permitted successfully\b",
+                r"\bpermit (?:has been|was) (?:successfully )?"
+                r"(?:approved|created|issued|saved|submitted)\b",
+                r"\bsuccessfully (?:permitted|safelisted)\b",
+            )
+        )
+        if structured_success or explicit_success:
             return PermitResult(
                 success=True,
                 message="The vehicle was permitted successfully.",

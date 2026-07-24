@@ -157,3 +157,42 @@ def test_unknown_final_response_fails_closed(service_config):
         PermitMyCarClient(service_config, session=session).submit(
             service_config.cars[0], (date(2030, 1, 2),)
         )
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Vehicle has been denied.", "rejected"),
+        ("Permit has been rejected.", "rejected"),
+        ("Confirmation is pending.", "unfamiliar"),
+        ("Vehicle has been inspected.", "unfamiliar"),
+    ],
+)
+def test_ambiguous_or_negative_wording_is_never_success(
+    service_config, message, expected
+):
+    session = FakeSession(prepared_responses(f"<html><p>{message}</p></html>"))
+    client = PermitMyCarClient(service_config, session=session)
+
+    if expected == "rejected":
+        result = client.submit(
+            service_config.cars[0], (date(2030, 1, 2),)
+        )
+        assert not result.success
+    else:
+        with pytest.raises(UpstreamUnavailableError, match=expected):
+            client.submit(service_config.cars[0], (date(2030, 1, 2),))
+
+
+def test_explicit_success_phrase_without_success_element_is_accepted(
+    service_config,
+):
+    session = FakeSession(
+        prepared_responses("<html><p>Vehicle has been safelisted.</p></html>")
+    )
+
+    result = PermitMyCarClient(service_config, session=session).submit(
+        service_config.cars[0], (date(2030, 1, 2),)
+    )
+
+    assert result.success
