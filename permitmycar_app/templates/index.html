@@ -23,12 +23,58 @@
 
       <fieldset>
         <legend>Choose date(s)</legend>
-        <div class="date-adder">
-          <input id="date-picker" type="date" min="{{ minimum_date }}">
-          <button id="add-date" class="secondary" type="button">Add date</button>
+        <p class="help calendar-intro">Select every night this car will stay. Select a day again to remove it.</p>
+        <div
+          class="calendar"
+          id="date-calendar"
+          data-min-date="{{ minimum_date }}"
+          aria-describedby="calendar-instructions"
+        >
+          <p class="sr-only" id="calendar-instructions">
+            Use the arrow keys to move between days, Page Up and Page Down to change months,
+            and Enter or Space to select or remove a date.
+          </p>
+          <div class="calendar-header">
+            <button
+              class="calendar-nav"
+              id="previous-month"
+              type="button"
+              aria-label="Show previous month"
+            >‹</button>
+            <h2 id="calendar-heading" aria-live="polite"></h2>
+            <button
+              class="calendar-nav"
+              id="next-month"
+              type="button"
+              aria-label="Show next month"
+            >›</button>
+          </div>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+          </div>
+          <div
+            class="calendar-grid"
+            id="calendar-grid"
+            role="grid"
+            aria-labelledby="calendar-heading"
+          ></div>
+          <p class="calendar-error" id="calendar-error" role="alert" hidden>
+            Choose at least one permit date.
+          </p>
+          <div class="calendar-footer">
+            <span id="selection-summary" aria-live="polite">No dates selected</span>
+            <button class="link-button clear-dates" id="clear-dates" type="button" hidden>
+              Clear dates
+            </button>
+          </div>
         </div>
-        <p class="help">Add every night this car will stay.</p>
-        <div id="selected-dates" class="date-list" aria-live="polite"></div>
+        <div id="selected-dates" hidden></div>
         <noscript>
           <label for="fallback-date">Permit date</label>
           <input id="fallback-date" name="dates" type="date" min="{{ minimum_date }}" required>

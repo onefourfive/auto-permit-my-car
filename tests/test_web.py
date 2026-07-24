@@ -36,6 +36,22 @@ def test_post_requires_csrf(client):
     assert response.status_code == 400
 
 
+def test_index_renders_inline_calendar_without_activation_control(client):
+    log_in(client)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b'id="date-calendar"' in response.data
+    assert b'id="calendar-grid"' in response.data
+    assert b'id="previous-month"' in response.data
+    assert b'id="next-month"' in response.data
+    assert b'id="clear-dates"' in response.data
+    assert b'id="date-picker"' not in response.data
+    assert b'id="add-date"' not in response.data
+    assert b'name="dates"' in response.data  # no-JavaScript fallback
+
+
 def test_review_and_submit_one_car_for_multiple_dates(
     client, fake_client
 ):
