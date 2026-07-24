@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Review · Permit a car{% endblock %}
+{% block content %}
+  <section class="card">
+    <p class="eyebrow">Confirm details</p>
+    <h1>Review permit</h1>
+    <dl class="summary">
+      <div>
+        <dt>Car</dt>
+        <dd>{{ car.name }} <small>{{ car.color }} {{ car.make }} {{ car.model }}</small></dd>
+      </div>
+      <div>
+        <dt>Date{% if dates|length != 1 %}s{% endif %}</dt>
+        <dd>
+          {% for permit_date in dates %}
+            <span class="date-summary">{{ permit_date.strftime("%A, %B %-d, %Y") }}</span>
+          {% endfor %}
+        </dd>
+      </div>
+    </dl>
+    <p class="agreement">Submitting confirms the PermitMyCar usage agreement for this vehicle and these dates.</p>
+    <form action="{{ url_for('permit') }}" method="post" class="button-row" id="submit-permit">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="nonce" value="{{ nonce }}">
+      <a class="secondary button" href="{{ url_for('index') }}">Go back</a>
+      <button class="primary" type="submit">Submit permit</button>
+    </form>
+  </section>
+{% endblock %}
+{% block scripts %}
+  <script>
+    document.getElementById("submit-permit").addEventListener("submit", function () {
+      const button = this.querySelector("button[type=submit]");
+      button.disabled = true;
+      button.textContent = "Submitting…";
+    });
+  </script>
+{% endblock %}

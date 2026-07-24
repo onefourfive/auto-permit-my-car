@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="card">
+    <p class="eyebrow">Overnight guest parking</p>
+    <h1>Who’s visiting?</h1>
+    <form action="{{ url_for('review') }}" method="post" class="stack" id="permit-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <fieldset>
+        <legend>Choose a car</legend>
+        <div class="car-list">
+          {% for car in cars %}
+            <label class="car-option">
+              <input type="radio" name="car_id" value="{{ car.id }}" required>
+              <span>
+                <strong>{{ car.name }}</strong>
+                <small>{{ car.color }} {{ car.make }} {{ car.model }}</small>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Choose date(s)</legend>
+        <div class="date-adder">
+          <input id="date-picker" type="date" min="{{ minimum_date }}">
+          <button id="add-date" class="secondary" type="button">Add date</button>
+        </div>
+        <p class="help">Add every night this car will stay.</p>
+        <div id="selected-dates" class="date-list" aria-live="polite"></div>
+        <noscript>
+          <label for="fallback-date">Permit date</label>
+          <input id="fallback-date" name="dates" type="date" min="{{ minimum_date }}" required>
+        </noscript>
+      </fieldset>
+
+      <button class="primary" type="submit">Review permit</button>
+    </form>
+  </section>
+{% endblock %}
+{% block scripts %}
+  <script src="{{ url_for('static', filename='dates.js') }}" defer></script>
+{% endblock %}

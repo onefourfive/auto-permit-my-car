@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Result · Permit a car{% endblock %}
+{% block content %}
+  <section class="card result-card">
+    {% if result.success %}
+      <div class="result-icon success" aria-hidden="true">✓</div>
+      <p class="eyebrow">Permit complete</p>
+      <h1>{{ result.message }}</h1>
+      {% if result.confirmation %}
+        <p class="confirmation">{{ result.confirmation }}</p>
+      {% endif %}
+      {% if replayed %}
+        <p class="muted">This was already submitted; no duplicate permit was created.</p>
+      {% endif %}
+    {% else %}
+      <div class="result-icon failure" aria-hidden="true">!</div>
+      <p class="eyebrow">Not submitted</p>
+      <h1>Permit needs attention</h1>
+      <p>{{ result.message }}</p>
+      <p class="muted">The service did not automatically retry.</p>
+    {% endif %}
+    <a class="primary button" href="{{ url_for('index') }}">
+      {% if result.success %}Permit another car{% else %}Return to selection{% endif %}
+    </a>
+  </section>
+{% endblock %}

@@ -1,0 +1,28 @@
+services:
+  permitmycar:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
+      PERMIT_APP_PASSWORD: ${PERMIT_APP_PASSWORD:?Set PERMIT_APP_PASSWORD in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TZ: America/Los_Angeles
+    volumes:
+      - ./login_info.yml:/app/login_info.yml:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true

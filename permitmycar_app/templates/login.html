@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Log in · Permit a car{% endblock %}
+{% block content %}
+  <section class="card narrow">
+    <p class="eyebrow">Private household service</p>
+    <h1>Welcome back</h1>
+    <p class="muted">Enter the service password. Your PermitMyCar PIN is never sent to this browser.</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button class="primary" type="submit">Continue</button>
+    </form>
+  </section>
+{% endblock %}
