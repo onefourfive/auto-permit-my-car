@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 import requests
@@ -11,6 +12,8 @@ from permitmycar_app.client import (
     PermitMyCarClient,
     UpstreamUnavailableError,
 )
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 class FakeResponse:
@@ -244,3 +247,28 @@ def test_confirmation_boilerplate_is_not_mistaken_for_a_code(service_config):
 
     assert result.success
     assert result.confirmation_code == ""
+
+
+def test_real_safelist_success_page_yields_confirmation_code(service_config):
+    html = (FIXTURES / "safelist_success.html").read_text(encoding="utf-8")
+    session = FakeSession(prepared_responses(html))
+
+    result = PermitMyCarClient(service_config, session=session).submit(
+        service_config.cars[0], (date(2030, 1, 2),)
+    )
+
+    assert result.success
+    assert result.confirmation_code == "K8D2"
+
+
+def test_labelled_code_wins_over_earlier_confirmation_text(service_config):
+    # A digit in the community name must not be read as the code.
+    html = (FIXTURES / "safelist_success.html").read_text(encoding="utf-8")
+    html = html.replace("Example Community", "Unit 4B Commons")
+    session = FakeSession(prepared_responses(html))
+
+    result = PermitMyCarClient(service_config, session=session).submit(
+        service_config.cars[0], (date(2030, 1, 2),)
+    )
+
+    assert result.confirmation_code == "K8D2"

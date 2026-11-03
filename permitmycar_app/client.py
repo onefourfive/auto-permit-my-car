@@ -297,7 +297,9 @@ class PermitMyCarClient:
         explicit_success = any(
             re.search(pattern, normalized)
             for pattern in (
-                r"\bvehicle (?:has been|was) (?:successfully )?safelisted\b",
+                # PermitMyCar's page reads "<plate> has been safelisted for
+                # the night(s) of", so no "vehicle" precedes the phrase.
+                r"\b(?:has been|was) (?:successfully )?safelisted\b",
                 r"\bvehicle (?:has been|was) permitted successfully\b",
                 r"\bpermit (?:has been|was) (?:successfully )?"
                 r"(?:approved|created|issued|saved|submitted)\b",
@@ -310,7 +312,7 @@ class PermitMyCarClient:
                 message="The vehicle was permitted successfully.",
                 confirmation=confirmation,
                 confirmation_code=cls._extract_confirmation_code(
-                    confirmation, text
+                    soup, confirmation, text
                 ),
             )
 
@@ -344,9 +346,21 @@ class PermitMyCarClient:
         return ""
 
     @staticmethod
-    def _extract_confirmation_code(*texts: str) -> str:
-        # The code must contain a digit so boilerplate such as "the
-        # confirmation code is required" is never mistaken for a code.
+    def _extract_confirmation_code(soup: BeautifulSoup, *texts: str) -> str:
+        # PermitMyCar labels the code in one element and shows it alone in
+        # the next: <p>This is your confirmation number</p><h2>K8D2</h2>.
+        # A code must contain a digit so boilerplate such as "the
+        # confirmation code is required" is never mistaken for one.
+        code_shape = re.compile(r"[A-Z0-9][A-Z0-9-]{2,31}", re.IGNORECASE)
+        label = re.compile(r"\bconfirmation (?:code|number)\s*:?\s*$", re.IGNORECASE)
+        for node in soup.find_all(string=label):
+            following = node.parent.find_next_sibling() if node.parent else None
+            if following is None:
+                continue
+            code = following.get_text(" ", strip=True)
+            if code_shape.fullmatch(code) and any(c.isdigit() for c in code):
+                return code
+
         pattern = re.compile(
             r"\bconfirmation\s*(?:code|number|no\.?|#)?\s*(?:is\b)?\s*[:#]?\s*"
             r"([A-Z0-9][A-Z0-9-]{2,31})\b",
