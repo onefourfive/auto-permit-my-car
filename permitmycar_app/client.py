@@ -33,6 +33,8 @@ class PermitResult:
     success: bool
     message: str
     confirmation: str = ""
+    # The safelist confirmation code that must be shown on the windshield.
+    confirmation_code: str = ""
 
 
 @dataclass(frozen=True)
@@ -307,6 +309,9 @@ class PermitMyCarClient:
                 success=True,
                 message="The vehicle was permitted successfully.",
                 confirmation=confirmation,
+                confirmation_code=cls._extract_confirmation_code(
+                    confirmation, text
+                ),
             )
 
         raise UpstreamUnavailableError(
@@ -336,4 +341,20 @@ class PermitMyCarClient:
             node = soup.select_one(selector)
             if node:
                 return node.get_text(" ", strip=True)[:300]
+        return ""
+
+    @staticmethod
+    def _extract_confirmation_code(*texts: str) -> str:
+        # The code must contain a digit so boilerplate such as "the
+        # confirmation code is required" is never mistaken for a code.
+        pattern = re.compile(
+            r"\bconfirmation\s*(?:code|number|no\.?|#)?\s*(?:is\b)?\s*[:#]?\s*"
+            r"([A-Z0-9][A-Z0-9-]{2,31})\b",
+            re.IGNORECASE,
+        )
+        for text in texts:
+            for match in pattern.finditer(text):
+                code = match.group(1)
+                if any(character.isdigit() for character in code):
+                    return code
         return ""

@@ -325,6 +325,7 @@ input:focus-visible, button:focus-visible, a:focus-visible {
   border-radius: .65rem;
 }
 .notice-error { background: #feeceb; color: var(--danger); }
+.notice-warning { background: #fff6e0; color: var(--ink); }
 
 .summary { margin: 0; }
 .summary div { padding: 1rem 0; border-top: 1px solid var(--line); }
@@ -363,6 +364,15 @@ input:focus-visible, button:focus-visible, a:focus-visible {
 .result-icon.success { background: var(--success); }
 .result-icon.failure { background: var(--danger); }
 .confirmation { padding: 1rem; border-radius: .65rem; background: #edf8f2; }
+.confirmation-code { margin: 1rem 0; padding: 1rem; border: 2px solid var(--success); border-radius: .65rem; }
+.confirmation-code .eyebrow { margin: 0; }
+.confirmation-code .code {
+  margin: .25rem 0;
+  font-size: 2.25rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  overflow-wrap: anywhere;
+}
 
 @media (max-width: 32rem) {
   .button-row { display: grid; }

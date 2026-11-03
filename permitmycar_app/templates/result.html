@@ -6,6 +6,18 @@
       <div class="result-icon success" aria-hidden="true">✓</div>
       <p class="eyebrow">Permit complete</p>
       <h1>{{ result.message }}</h1>
+      {% if result.confirmation_code %}
+        <div class="confirmation-code">
+          <p class="eyebrow">Confirmation code</p>
+          <p class="code">{{ result.confirmation_code }}</p>
+          <p class="muted">Display this code in the front windshield.</p>
+        </div>
+      {% else %}
+        <p class="notice notice-warning">
+          No confirmation code was found in PermitMyCar's response. Check
+          PermitMyCar or your email for the code to display in the windshield.
+        </p>
+      {% endif %}
       {% if result.confirmation %}
         <p class="confirmation">{{ result.confirmation }}</p>
       {% endif %}

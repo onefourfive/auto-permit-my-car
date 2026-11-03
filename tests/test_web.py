@@ -191,3 +191,42 @@ def test_healthcheck_contains_no_private_data(client):
 
     assert response.status_code == 200
     assert response.json == {"status": "ok"}
+
+
+def _submit_reviewed_permit(client):
+    log_in(client)
+    client.post(
+        "/review",
+        data={
+            "csrf_token": csrf(client),
+            "car_id": "1",
+            "dates": "2030-01-02",
+        },
+    )
+    with client.session_transaction() as current_session:
+        nonce = current_session["pending_review"]["nonce"]
+    return client.post(
+        "/permit",
+        data={"csrf_token": csrf(client), "nonce": nonce},
+    )
+
+
+def test_success_page_shows_confirmation_code(client, fake_client):
+    fake_client.result = PermitResult(
+        True,
+        "The vehicle was permitted successfully.",
+        confirmation_code="4827193",
+    )
+
+    response = _submit_reviewed_permit(client)
+
+    assert b"Confirmation code" in response.data
+    assert b"4827193" in response.data
+    assert b"No confirmation code was found" not in response.data
+
+
+def test_success_page_warns_when_confirmation_code_is_missing(client):
+    response = _submit_reviewed_permit(client)
+
+    assert b"Permit complete" in response.data
+    assert b"No confirmation code was found" in response.data

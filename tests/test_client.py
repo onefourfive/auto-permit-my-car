@@ -196,3 +196,51 @@ def test_explicit_success_phrase_without_success_element_is_accepted(
     )
 
     assert result.success
+
+
+@pytest.mark.parametrize(
+    ("html", "expected"),
+    [
+        (
+            '<div class="alert-success">Vehicle has been safelisted. '
+            "Confirmation Code: 4827193</div>",
+            "4827193",
+        ),
+        (
+            "<p>Vehicle has been safelisted.</p>"
+            "<h3>Confirmation Number</h3><h1>AB12CD</h1>",
+            "AB12CD",
+        ),
+        (
+            "<p>Vehicle has been safelisted.</p>"
+            "<p>Your confirmation # is 55-0192</p>",
+            "55-0192",
+        ),
+    ],
+)
+def test_success_extracts_confirmation_code(service_config, html, expected):
+    session = FakeSession(prepared_responses(f"<html>{html}</html>"))
+
+    result = PermitMyCarClient(service_config, session=session).submit(
+        service_config.cars[0], (date(2030, 1, 2),)
+    )
+
+    assert result.success
+    assert result.confirmation_code == expected
+
+
+def test_confirmation_boilerplate_is_not_mistaken_for_a_code(service_config):
+    session = FakeSession(
+        prepared_responses(
+            "<html><p>Vehicle has been safelisted.</p>"
+            "<p>The safelist confirmation code is required to be placed in "
+            "the front windshield.</p></html>"
+        )
+    )
+
+    result = PermitMyCarClient(service_config, session=session).submit(
+        service_config.cars[0], (date(2030, 1, 2),)
+    )
+
+    assert result.success
+    assert result.confirmation_code == ""
